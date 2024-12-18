@@ -92,6 +92,13 @@ def get_modified_chunk_times(in_filename, silence_threshold, silence_duration):
 		prev_end_time = end_time
 	return modified_start_times
 
+def start_end_label(p_start_sec, p_end_sec):
+	(starthours, startseconds) = divmod(p_start_sec, 3600)
+	(startminutes, startseconds) = divmod(startseconds, 60)
+	(endhours, endseconds) = divmod(p_end_sec, 3600)
+	(endminutes, endseconds) = divmod(endseconds, 60)
+	return f"{starthours:02.0f}:{startminutes:02.0f}:{startseconds:05.2f} - {endhours:02.0f}:{endminutes:02.0f}:{endseconds:05.2f}"
+
 def process_file(p_file_name, p_start_num, p_create_dir, p_args,silence_threshold=DEFAULT_THRESHOLD):
 	audiofile = eyed3.load(p_file_name)
 	album_name = ""
@@ -114,10 +121,11 @@ def process_file(p_file_name, p_start_num, p_create_dir, p_args,silence_threshol
 	prev_name = ""
 	markers = get_modified_chunk_times(p_file_name, silence_threshold, p_args.m)
 	for marker in markers:
-		curr_name = f"{p_start_num}_{file_name}"
+		l_start_num = f"{p_start_num:02.0f}"
+		curr_name = f"{l_start_num}_{file_name}"
 		if p_args.n:
 			new = Template(p_args.n)
-			curr_name = new.substitute(number= p_start_num)
+			curr_name = new.substitute(number= l_start_num)
 		curr_seconds = float(marker)
 		start_ms = (1000 * prev_seconds)
 		end_ms = (1000 * curr_seconds) 
@@ -128,7 +136,7 @@ def process_file(p_file_name, p_start_num, p_create_dir, p_args,silence_threshol
 				split_audio_bytes.export(out_file_path, format="mp3",parameters=["-q:a","8"], bitrate="64k",tags={'artist': artist_name, 'album': album_name, 'track': prev_name, 'title': prev_name})
 				print(f"Exported {out_file_path}")
 			else:
-				print(f"{round((start_ms/1000),3)}\t{round((end_ms/1000),3)}\t{prev_name}")
+				print(f"{start_end_label(prev_seconds, curr_seconds)}\t{prev_name}")
 		prev_name = curr_name
 		prev_seconds = curr_seconds
 		i+=1
@@ -143,7 +151,7 @@ def process_file(p_file_name, p_start_num, p_create_dir, p_args,silence_threshol
 		split_audio_bytes.export(out_file_path, format="mp3",parameters=["-q:a","8"], bitrate="64k",tags={'artist': artist_name, 'album': album_name, 'track': prev_name, 'title': prev_name})
 		print(f"Exported {out_file_path}")
 	else:
-		print(f"{round((start_ms/1000),3)}\t{round((end_ms/1000),3)}\t{prev_name}")
+		print(f"{start_end_label(prev_seconds, duration)}\t{prev_name}")
 	return p_start_num
 
 def main():
